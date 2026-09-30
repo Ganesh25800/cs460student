@@ -313,7 +313,8 @@
         // =====================================================================
         // 1. INITIALIZE XTK 3D RENDERER
         // =====================================================================
-        var r = new X.renderer3D();
+        window.r = new X.renderer3D();
+		var r = window.r;
         r.init();
 
         // Angled perspective matching the hand-drawn sketch view
