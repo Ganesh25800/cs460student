@@ -1,0 +1,1058 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CS460 - Cube Galaxy (Assignment 2)</title>
+
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+
+      html, body {
+        background-color: #05030b;
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        width: 100%;
+        overflow: hidden !important;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        color: #ffffff;
+        user-select: none;
+        -webkit-user-select: none;
+      }
+
+      /* Deep cosmic nebula background */
+      body::before {
+        content: '';
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        pointer-events: none;
+        background: 
+          radial-gradient(circle at 50% 50%, rgba(26, 12, 48, 0.45) 0%, rgba(8, 4, 18, 0.8) 55%, #05030b 95%),
+          radial-gradient(circle at 30% 40%, rgba(0, 160, 255, 0.08) 0%, transparent 45%),
+          radial-gradient(circle at 70% 60%, rgba(255, 20, 147, 0.08) 0%, transparent 45%);
+        z-index: 1;
+      }
+
+      /* Subtle starlight vignette */
+      #cosmic-dust-overlay {
+        position: fixed;
+        top: 0; left: 0; width: 100%; height: 100%;
+        pointer-events: none;
+        z-index: 2;
+        background-image: 
+          radial-gradient(1px 1px at 15% 20%, rgba(255, 255, 255, 0.4), transparent),
+          radial-gradient(1.5px 1.5px at 35% 75%, rgba(0, 240, 255, 0.35), transparent),
+          radial-gradient(1px 1px at 70% 15%, rgba(255, 105, 180, 0.35), transparent),
+          radial-gradient(1.5px 1.5px at 85% 80%, rgba(255, 255, 255, 0.3), transparent),
+          radial-gradient(1px 1px at 50% 90%, rgba(0, 240, 255, 0.25), transparent);
+        background-size: 600px 600px;
+      }
+
+      /* Header & Branding */
+      #header-container {
+        position: absolute;
+        top: 18px;
+        left: 22px;
+        z-index: 10;
+        pointer-events: none;
+      }
+
+      #header-title {
+        margin: 0;
+        font-size: 26px;
+        font-weight: 800;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        background: linear-gradient(135deg, #00f0ff 0%, #d946ef 50%, #ff2a85 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        text-shadow: 0 0 24px rgba(217, 70, 239, 0.35);
+      }
+
+      #header-subtitle {
+        font-size: 12px;
+        font-weight: 500;
+        color: #a3a9cb;
+        letter-spacing: 0.6px;
+        margin-top: 4px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .badge-sketch {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 10px;
+        font-size: 10px;
+        font-weight: 700;
+        background: rgba(255, 42, 133, 0.18);
+        color: #ff66aa;
+        border: 1px solid rgba(255, 42, 133, 0.35);
+        letter-spacing: 0.5px;
+      }
+
+      /* Glassmorphism Control Deck (Top Right) */
+      #hud-panel {
+        position: absolute;
+        top: 18px;
+        right: 22px;
+        z-index: 10;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        align-items: flex-end;
+      }
+
+      .controls-bar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: rgba(14, 10, 28, 0.72);
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+        padding: 6px 10px;
+        border-radius: 24px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.55);
+      }
+
+      .hud-btn {
+        padding: 7px 14px;
+        border-radius: 16px;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        background: rgba(255, 255, 255, 0.05);
+        color: #e4e7f5;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .hud-btn:hover {
+        background: rgba(255, 255, 255, 0.14);
+        border-color: rgba(255, 255, 255, 0.3);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      }
+
+      .hud-btn.primary {
+        background: linear-gradient(135deg, rgba(0, 240, 255, 0.25) 0%, rgba(255, 42, 133, 0.25) 100%);
+        border: 1px solid rgba(0, 240, 255, 0.4);
+        color: #ffffff;
+      }
+
+      .hud-btn.primary:hover {
+        background: linear-gradient(135deg, rgba(0, 240, 255, 0.4) 0%, rgba(255, 42, 133, 0.4) 100%);
+        box-shadow: 0 0 16px rgba(0, 240, 255, 0.4);
+      }
+
+      .hud-btn.active {
+        background: rgba(0, 240, 255, 0.22);
+        border-color: #00f0ff;
+        color: #00f0ff;
+      }
+
+      /* Telemetry Info Pill */
+      .telemetry-deck {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 11px;
+        color: #9aa1c2;
+        background: rgba(14, 10, 28, 0.6);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        padding: 5px 14px;
+        border-radius: 14px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      .telemetry-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .indicator-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+      }
+
+      .dot-cyan {
+        background: #00f0ff;
+        box-shadow: 0 0 6px #00f0ff;
+      }
+
+      .dot-pink {
+        background: #ff2a85;
+        box-shadow: 0 0 6px #ff2a85;
+      }
+
+      .dot-core {
+        background: #b537f2;
+        box-shadow: 0 0 8px #d946ef;
+        animation: pulseCore 2.4s infinite ease-in-out;
+      }
+
+      @keyframes pulseCore {
+        0%, 100% { transform: scale(1); opacity: 0.8; }
+        50% { transform: scale(1.35); opacity: 1; }
+      }
+
+      /* Bottom Keyboard Shortcuts Guide */
+      #shortcuts-legend {
+        position: absolute;
+        bottom: 20px;
+        left: 22px;
+        z-index: 10;
+        background: rgba(14, 10, 28, 0.72);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 14px;
+        padding: 9px 15px;
+        font-size: 11px;
+        color: #8f96b8;
+        pointer-events: none;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+
+      .shortcut-item {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+
+      .key {
+        display: inline-block;
+        background: rgba(255, 255, 255, 0.12);
+        color: #ffffff;
+        font-weight: 700;
+        font-size: 10px;
+        padding: 2px 6px;
+        border-radius: 4px;
+        border-bottom: 2px solid rgba(255, 255, 255, 0.3);
+      }
+
+      /* Notification Toast */
+      #toast {
+        position: absolute;
+        bottom: 30px;
+        left: 50%;
+        transform: translateX(-50%) translateY(30px);
+        z-index: 100;
+        background: rgba(16, 12, 32, 0.9);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border: 1px solid rgba(0, 240, 255, 0.4);
+        padding: 8px 20px;
+        border-radius: 20px;
+        color: #ffffff;
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0.4px;
+        opacity: 0;
+        pointer-events: none;
+        transition: all 0.35s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+      }
+
+      #toast.show {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
+
+      /* Mobile adjustment */
+      @media (max-width: 768px) {
+        #hud-panel {
+          right: 12px;
+          top: 65px;
+        }
+        #shortcuts-legend {
+          display: none;
+        }
+      }
+    </style>
+
+    <script type="text/javascript">
+      window.onerror = function(msg, url, line, col, error) {
+        var d = document.createElement('div');
+        d.id = 'debug-error-banner';
+        d.style.position = 'fixed';
+        d.style.top = '10px';
+        d.style.left = '10px';
+        d.style.background = 'red';
+        d.style.color = 'white';
+        d.style.padding = '20px';
+        d.style.zIndex = '999999';
+        d.innerText = 'ERROR: ' + msg + ' at line ' + line + ':' + col + '\n' + (error ? error.stack : '');
+        document.body.appendChild(d);
+        console.error('GLOBAL ERROR:', msg, line, col, error);
+      };
+    </script>
+
+    <!-- 1. Official XTK WebGL Framework -->
+    <script type="text/javascript" src="https://get.goXTK.com/xtk_edge.js"></script>
+
+    <!-- 2. CS460 Scene Loader / Serializer -->
+    <script type="text/javascript" src="loader.js"></script>
+
+    <script type="text/javascript">
+      window.onload = function() {
+
+        // =====================================================================
+        // 1. INITIALIZE XTK 3D RENDERER
+        // =====================================================================
+        var r = new X.renderer3D();
+        r.init();
+
+        // Angled perspective matching the hand-drawn sketch view
+        var DEFAULT_CAM_POS = [0, 240, 480];
+        r.camera.position = [DEFAULT_CAM_POS[0], DEFAULT_CAM_POS[1], DEFAULT_CAM_POS[2]];
+        r.camera.focus = [0, 0, 0];
+        r.camera.up = [0, 1, 0];
+
+        // =====================================================================
+        // 2. WEB AUDIO SYNTHESIZER FOR INTERACTIVE FEEDBACK
+        // =====================================================================
+        var audioCtx = null;
+        var soundEnabled = true;
+
+        function initAudio() {
+          if (!audioCtx) {
+            try {
+              audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            } catch(e) {}
+          }
+          if (audioCtx && audioCtx.state === 'suspended') {
+            audioCtx.resume();
+          }
+        }
+
+        function playSound(type) {
+          if (!soundEnabled) return;
+          try {
+            initAudio();
+            if (!audioCtx) return;
+            var now = audioCtx.currentTime;
+
+            if (type === 'flare') {
+              // Cosmic flare whoosh & chord
+              [440, 554.37, 659.25, 880].forEach(function(freq, i) {
+                var osc = audioCtx.createOscillator();
+                var gain = audioCtx.createGain();
+                osc.type = 'triangle';
+                var st = now + i * 0.04;
+                osc.frequency.setValueAtTime(freq, st);
+                osc.frequency.exponentialRampToValueAtTime(freq * 1.5, st + 0.35);
+                gain.gain.setValueAtTime(0.08, st);
+                gain.gain.exponentialRampToValueAtTime(0.001, st + 0.38);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(st);
+                osc.stop(st + 0.38);
+              });
+            } else if (type === 'reset') {
+              var osc = audioCtx.createOscillator();
+              var gain = audioCtx.createGain();
+              osc.type = 'sine';
+              osc.frequency.setValueAtTime(520, now);
+              osc.frequency.exponentialRampToValueAtTime(260, now + 0.25);
+              gain.gain.setValueAtTime(0.09, now);
+              gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+              osc.connect(gain);
+              gain.connect(audioCtx.destination);
+              osc.start(now);
+              osc.stop(now + 0.25);
+            }
+          } catch(e) {}
+        }
+
+        // =====================================================================
+        // 3. COLOR INTERPOLATION ROUTINES (BLUE -> PURPLE -> PINK)
+        // =====================================================================
+        // Smoothly transitions the core cube between Azure Blue, Electric Purple, and Hot Pink
+        function getCoreColor(t) {
+          var cycle = (t * 0.45) % (Math.PI * 2);
+          var w0 = Math.pow(Math.max(0, Math.cos(cycle)), 2);
+          var w1 = Math.pow(Math.max(0, Math.cos(cycle - 2 * Math.PI / 3)), 2);
+          var w2 = Math.pow(Math.max(0, Math.cos(cycle - 4 * Math.PI / 3)), 2);
+          var sum = w0 + w1 + w2 || 1;
+          w0 /= sum;
+          w1 /= sum;
+          w2 /= sum;
+
+          // Color 0: Azure Blue      [0.08, 0.52, 1.00]
+          // Color 1: Electric Purple [0.68, 0.12, 0.94]
+          // Color 2: Hot Neon Pink   [1.00, 0.18, 0.65]
+          return [
+            w0 * 0.08 + w1 * 0.68 + w2 * 1.00,
+            w0 * 0.52 + w1 * 0.12 + w2 * 0.18,
+            w0 * 1.00 + w1 * 0.94 + w2 * 0.65
+          ];
+        }
+
+        // =====================================================================
+        // 4. CORE SCENE ARCHITECTURE (CUBE GALAXY)
+        // =====================================================================
+        // ---------------------------------------------------------------------
+        // A. Main Center Energy Core (Large Cube)
+        // ---------------------------------------------------------------------
+        var CORE_BASE_SIZE = 54;
+        var centerCube = new X.cube();
+        centerCube.lengthX = CORE_BASE_SIZE;
+        centerCube.lengthY = CORE_BASE_SIZE;
+        centerCube.lengthZ = CORE_BASE_SIZE;
+        centerCube.center = [0, 0, 0];
+        centerCube.color = [0.1, 0.5, 1.0];
+        r.add(centerCube);
+
+        // ---------------------------------------------------------------------
+        // B. Radiating Burst Energy Rays (Light Blue & Pink Dashed Rays)
+        // ---------------------------------------------------------------------
+        var RAY_COUNT = 36;
+        var rayCubes = [];
+        for (var i = 0; i < RAY_COUNT; i++) {
+          var rc = new X.cube();
+          rc.lengthX = 4.2;
+          rc.lengthY = 4.2;
+          rc.lengthZ = 4.2;
+          rc.center = [0, 0, 0];
+
+          var theta = (i / RAY_COUNT) * Math.PI * 2 + (Math.random() - 0.5) * 0.12;
+          var phi = (Math.random() - 0.5) * 0.45;
+          var dx = Math.cos(theta) * Math.cos(phi);
+          var dy = Math.sin(phi);
+          var dz = Math.sin(theta) * Math.cos(phi);
+
+          var isBlue = (i % 2 === 0);
+          var col = isBlue ? [0.35, 0.88, 1.0] : [1.0, 0.45, 0.82];
+          rc.color = col;
+
+          var baseDist = 42 + (i % 4) * 24;
+          rc.transform.matrix[12] = dx * baseDist;
+          rc.transform.matrix[13] = dy * baseDist;
+          rc.transform.matrix[14] = dz * baseDist;
+
+          r.add(rc);
+          rayCubes.push({
+            cube: rc,
+            dx: dx, dy: dy, dz: dz,
+            speed: 0.75 + Math.random() * 0.6,
+            dist: baseDist,
+            minDist: 38,
+            maxDist: 145,
+            rotX: (Math.random() - 0.5) * 3,
+            rotY: (Math.random() - 0.5) * 3
+          });
+        }
+
+        // ---------------------------------------------------------------------
+        // C. Inner Ring: Smaller Blue Cubes (Orbiting Clockwise)
+        // ---------------------------------------------------------------------
+        var R_INNER = 140;
+        var INNER_COUNT = 8;
+        var INNER_SPEED = 0.55; // Clockwise
+        var innerCubes = [];
+
+        var BLUE_SHADES = [
+          [0.05, 0.48, 1.00], // Azure Blue
+          [0.00, 0.82, 1.00], // Electric Cyan
+          [0.15, 0.62, 0.98], // Sky Blue
+          [0.08, 0.38, 0.94], // Cobalt
+          [0.22, 0.72, 1.00], // Neon Ice Blue
+          [0.00, 0.65, 0.95], // Cerulean
+          [0.18, 0.45, 0.98], // Deep Sapphire
+          [0.30, 0.85, 1.00]  // Bright Cyan
+        ];
+
+        for (var i = 0; i < INNER_COUNT; i++) {
+          var ic = new X.cube();
+          ic.lengthX = 18;
+          ic.lengthY = 18;
+          ic.lengthZ = 18;
+          ic.center = [0, 0, 0];
+          ic.color = BLUE_SHADES[i % BLUE_SHADES.length];
+
+          var baseAngle = (i / INNER_COUNT) * Math.PI * 2;
+          var x = R_INNER * Math.cos(baseAngle);
+          var y = 0;
+          var z = R_INNER * Math.sin(baseAngle);
+
+          ic.transform.matrix[12] = x;
+          ic.transform.matrix[13] = y;
+          ic.transform.matrix[14] = z;
+
+          r.add(ic);
+          innerCubes.push({
+            cube: ic,
+            baseAngle: baseAngle,
+            rotSpeedX: 1.4 + (i % 3) * 0.4,
+            rotSpeedY: 1.8 + ((i + 1) % 3) * 0.4,
+            rotSpeedZ: 1.2
+          });
+        }
+
+        // Inner Visible Orbit Track (Cyan Micro-Cubes)
+        var INNER_TRACK_COUNT = 32;
+        var innerTrackCubes = [];
+        for (var i = 0; i < INNER_TRACK_COUNT; i++) {
+          var tc = new X.cube();
+          tc.lengthX = 3.2;
+          tc.lengthY = 3.2;
+          tc.lengthZ = 3.2;
+          tc.center = [0, 0, 0];
+          tc.color = [0.0, 0.75, 1.0];
+
+          var ang = (i / INNER_TRACK_COUNT) * Math.PI * 2;
+          tc.transform.matrix[12] = R_INNER * Math.cos(ang);
+          tc.transform.matrix[13] = 0;
+          tc.transform.matrix[14] = R_INNER * Math.sin(ang);
+
+          r.add(tc);
+          innerTrackCubes.push(tc);
+        }
+
+        // ---------------------------------------------------------------------
+        // D. Outer Ring: Larger Pink/Purple Cubes (Orbiting Counter-Clockwise)
+        // ---------------------------------------------------------------------
+        var R_OUTER = 250;
+        var OUTER_COUNT = 12;
+        var OUTER_SPEED = 0.38; // Counter-Clockwise
+        var outerCubes = [];
+
+        var PINK_SHADES = [
+          [1.00, 0.12, 0.62], // Hot Pink
+          [0.92, 0.08, 0.78], // Neon Magenta
+          [1.00, 0.28, 0.72], // Bubblegum Pink
+          [0.85, 0.15, 0.88], // Violet Pink
+          [0.98, 0.18, 0.52], // Deep Rose
+          [1.00, 0.05, 0.85], // Fuchsia
+          [0.88, 0.20, 0.80], // Orchid
+          [1.00, 0.35, 0.68], // Electric Blush
+          [0.80, 0.10, 0.90], // Lavender Magenta
+          [1.00, 0.15, 0.55], // Crimson Pink
+          [0.95, 0.12, 0.70], // Barbie Pink
+          [0.75, 0.18, 0.95]  // Royal Purple Pink
+        ];
+
+        for (var i = 0; i < OUTER_COUNT; i++) {
+          var oc = new X.cube();
+          oc.lengthX = 26;
+          oc.lengthY = 26;
+          oc.lengthZ = 26;
+          oc.center = [0, 0, 0];
+          oc.color = PINK_SHADES[i % PINK_SHADES.length];
+
+          var baseAngle = (i / OUTER_COUNT) * Math.PI * 2;
+          var x = R_OUTER * Math.cos(baseAngle);
+          var y = 0;
+          var z = R_OUTER * Math.sin(baseAngle);
+
+          oc.transform.matrix[12] = x;
+          oc.transform.matrix[13] = y;
+          oc.transform.matrix[14] = z;
+
+          r.add(oc);
+          outerCubes.push({
+            cube: oc,
+            baseAngle: baseAngle,
+            rotSpeedX: 1.1 + (i % 3) * 0.3,
+            rotSpeedY: 1.5 + ((i + 1) % 3) * 0.4,
+            rotSpeedZ: 0.9
+          });
+        }
+
+        // Outer Visible Orbit Track (Pink Micro-Cubes)
+        var OUTER_TRACK_COUNT = 44;
+        var outerTrackCubes = [];
+        for (var i = 0; i < OUTER_TRACK_COUNT; i++) {
+          var tc = new X.cube();
+          tc.lengthX = 3.6;
+          tc.lengthY = 3.6;
+          tc.lengthZ = 3.6;
+          tc.center = [0, 0, 0];
+          tc.color = [1.0, 0.22, 0.70];
+
+          var ang = (i / OUTER_TRACK_COUNT) * Math.PI * 2;
+          tc.transform.matrix[12] = R_OUTER * Math.cos(ang);
+          tc.transform.matrix[13] = 0;
+          tc.transform.matrix[14] = R_OUTER * Math.sin(ang);
+
+          r.add(tc);
+          outerTrackCubes.push(tc);
+        }
+
+        // ---------------------------------------------------------------------
+        // E. Dynamic Outward-Flying and Returning Cubes ("Cosmic Flares")
+        // ---------------------------------------------------------------------
+        var FLARE_COUNT = 8;
+        var flareCubes = [];
+
+        for (var i = 0; i < FLARE_COUNT; i++) {
+          var fc = new X.cube();
+          var size = 11 + (i % 3) * 3;
+          fc.lengthX = size;
+          fc.lengthY = size;
+          fc.lengthZ = size;
+          fc.center = [0, 0, 0];
+
+          var isBlue = (i % 2 === 0);
+          fc.color = isBlue ? [0.1, 0.7, 1.0] : [1.0, 0.2, 0.75];
+
+          var baseAng = (i / FLARE_COUNT) * Math.PI * 2;
+          var rInit = 110 + (i % 3) * 35;
+          fc.transform.matrix[12] = rInit * Math.cos(baseAng);
+          fc.transform.matrix[13] = 0;
+          fc.transform.matrix[14] = rInit * Math.sin(baseAng);
+
+          r.add(fc);
+          flareCubes.push({
+            cube: fc,
+            isBlue: isBlue,
+            baseAngle: baseAng,
+            rStart: rInit,
+            rMax: 330 + Math.random() * 120, // Distance reached in deep space
+            elevationDir: (i % 2 === 0 ? 1 : -1) * (0.6 + Math.random() * 0.8),
+            cycleDuration: 7.0 + Math.random() * 4.0, // Individual loop time
+            progress: (i / FLARE_COUNT), // Staggered start so flights occur continuously
+            isBursting: false,
+            rotSpeedX: 2.5 + Math.random() * 2.0,
+            rotSpeedY: 3.0 + Math.random() * 2.0,
+            rotSpeedZ: 2.0
+          });
+        }
+
+        function triggerFlareSurge() {
+          playSound('flare');
+          for (var i = 0; i < flareCubes.length; i++) {
+            flareCubes[i].isBursting = true;
+            flareCubes[i].progress = 0.05 + i * 0.04; // Synced outward wave
+          }
+          showToast('🚀 Cosmic Flares Launched! Orbiting & returning...');
+        }
+
+        // ---------------------------------------------------------------------
+        // F. Background Galaxy Starfield (Scattered Small Cubes)
+        // ---------------------------------------------------------------------
+        var STAR_COUNT = 55;
+        var starCubes = [];
+        var STAR_COLORS = [
+          [0.35, 0.75, 1.00], // Soft cyan
+          [1.00, 0.35, 0.75], // Neon pink
+          [0.72, 0.35, 0.98], // Deep violet
+          [0.92, 0.95, 1.00], // Starlight white
+          [0.20, 0.55, 0.95]  // Deep sky blue
+        ];
+
+        for (var s = 0; s < STAR_COUNT; s++) {
+          var star = new X.cube();
+          var size = 5.5 + Math.random() * 4.0;
+          star.lengthX = size;
+          star.lengthY = size;
+          star.lengthZ = size;
+          star.center = [0, 0, 0];
+
+          var rad = 170 + Math.random() * 320;
+          var theta = Math.random() * Math.PI * 2;
+          var starY = (Math.random() - 0.5) * 360;
+
+          var sx = rad * Math.cos(theta);
+          var sz = rad * Math.sin(theta);
+
+          star.transform.matrix[12] = sx;
+          star.transform.matrix[13] = starY;
+          star.transform.matrix[14] = sz;
+          star.color = STAR_COLORS[s % STAR_COLORS.length];
+
+          r.add(star);
+          starCubes.push({
+            cube: star,
+            radius: rad,
+            theta: theta,
+            y: starY,
+            phase: Math.random() * Math.PI * 2,
+            rotX: (Math.random() - 0.5) * 1.5,
+            rotY: (Math.random() - 0.5) * 1.5
+          });
+        }
+
+        // =====================================================================
+        // 5. ANIMATION & RENDER LOOP
+        // =====================================================================
+        var time = 0;
+        var autoOrbit = true;
+        var speedMultiplier = 1.0;
+
+        var lastTime = performance.now();
+        var frameCount = 0;
+        var fpsDisplay = document.getElementById('fps-counter');
+
+        r.onRender = function() {
+          var now = performance.now();
+          frameCount++;
+          if (now - lastTime >= 1000) {
+            fpsDisplay.textContent = frameCount + ' FPS';
+            frameCount = 0;
+            lastTime = now;
+          }
+
+          var dt = 0.016 * speedMultiplier;
+          time += dt;
+
+          // Always anchor scene focus centroid at origin (0,0,0)
+          r.u = [0, 0, 0];
+
+          // -------------------------------------------------------------------
+          // 1. Center Core Cube (Rotate, Pulse & Color Transition)
+          // -------------------------------------------------------------------
+          centerCube.transform.rotateX(0.35 * speedMultiplier);
+          centerCube.transform.rotateY(0.55 * speedMultiplier);
+          centerCube.transform.rotateZ(0.25 * speedMultiplier);
+
+          // Rhythmic scale pulse breathing (0.84 to 1.16)
+          var pulse = Math.sin(time * 2.6);
+          var coreScale = 1.0 + 0.16 * pulse;
+
+          // Orthonormalize matrix rotation axes and apply breathing scale
+          var cm = centerCube.transform.matrix;
+          var l0 = Math.hypot(cm[0], cm[1], cm[2]) || 1;
+          cm[0] = (cm[0] / l0) * coreScale;
+          cm[1] = (cm[1] / l0) * coreScale;
+          cm[2] = (cm[2] / l0) * coreScale;
+
+          var l1 = Math.hypot(cm[4], cm[5], cm[6]) || 1;
+          cm[4] = (cm[4] / l1) * coreScale;
+          cm[5] = (cm[5] / l1) * coreScale;
+          cm[6] = (cm[6] / l1) * coreScale;
+
+          var l2 = Math.hypot(cm[8], cm[9], cm[10]) || 1;
+          cm[8] = (cm[8] / l2) * coreScale;
+          cm[9] = (cm[9] / l2) * coreScale;
+          cm[10] = (cm[10] / l2) * coreScale;
+
+          cm[12] = 0;
+          cm[13] = 0;
+          cm[14] = 0;
+          centerCube.transform.modified();
+
+          // Smooth Blue -> Purple -> Pink color cycle
+          centerCube.color = getCoreColor(time);
+
+          // -------------------------------------------------------------------
+          // 2. Radiating Burst Energy Rays
+          // -------------------------------------------------------------------
+          for (var i = 0; i < rayCubes.length; i++) {
+            var item = rayCubes[i];
+            item.dist += item.speed * speedMultiplier;
+            if (item.dist > item.maxDist) {
+              item.dist = item.minDist;
+            }
+            var d = item.dist + Math.sin(time * 3.5 + i) * 2.5;
+
+            item.cube.transform.rotateX(item.rotX);
+            item.cube.transform.rotateY(item.rotY);
+            item.cube.transform.matrix[12] = item.dx * d;
+            item.cube.transform.matrix[13] = item.dy * d;
+            item.cube.transform.matrix[14] = item.dz * d;
+            item.cube.transform.modified();
+          }
+
+          // -------------------------------------------------------------------
+          // 3. Inner Ring: Blue Cubes (Clockwise Orbit)
+          // -------------------------------------------------------------------
+          for (var i = 0; i < innerCubes.length; i++) {
+            var item = innerCubes[i];
+            var ang = item.baseAngle - time * INNER_SPEED;
+
+            var ix = R_INNER * Math.cos(ang);
+            var iy = Math.sin(time * 2.8 + i) * 3.5;
+            var iz = R_INNER * Math.sin(ang);
+
+            item.cube.transform.rotateX(item.rotSpeedX);
+            item.cube.transform.rotateY(item.rotSpeedY);
+            item.cube.transform.rotateZ(item.rotSpeedZ);
+
+            item.cube.transform.matrix[12] = ix;
+            item.cube.transform.matrix[13] = iy;
+            item.cube.transform.matrix[14] = iz;
+            item.cube.transform.modified();
+          }
+
+          // -------------------------------------------------------------------
+          // 4. Outer Ring: Pink Cubes (Counter-Clockwise Orbit)
+          // -------------------------------------------------------------------
+          for (var i = 0; i < outerCubes.length; i++) {
+            var item = outerCubes[i];
+            var ang = item.baseAngle + time * OUTER_SPEED;
+
+            var ox = R_OUTER * Math.cos(ang);
+            var oy = Math.sin(time * 2.2 + i * 0.7) * 4.5;
+            var oz = R_OUTER * Math.sin(ang);
+
+            item.cube.transform.rotateX(item.rotSpeedX);
+            item.cube.transform.rotateY(item.rotSpeedY);
+            item.cube.transform.rotateZ(item.rotSpeedZ);
+
+            item.cube.transform.matrix[12] = ox;
+            item.cube.transform.matrix[13] = oy;
+            item.cube.transform.matrix[14] = oz;
+            item.cube.transform.modified();
+          }
+
+          // -------------------------------------------------------------------
+          // 5. Dynamic Outward-Flying and Returning Cubes
+          // -------------------------------------------------------------------
+          for (var i = 0; i < flareCubes.length; i++) {
+            var fc = flareCubes[i];
+            fc.progress += (dt / fc.cycleDuration);
+            if (fc.progress >= 1.0) {
+              fc.progress = 0.0;
+              fc.isBursting = false;
+            }
+
+            var u = fc.progress;
+            var currentRadius;
+
+            if (u < 0.45) {
+              // Outward expansion flight phase (ease-out quad)
+              var norm = u / 0.45;
+              var easeOut = norm * (2.0 - norm);
+              currentRadius = fc.rStart + (fc.rMax - fc.rStart) * easeOut;
+            } else if (u < 0.60) {
+              // Apogee hover in deep space
+              currentRadius = fc.rMax;
+            } else {
+              // Gravitational return phase (smooth ease-in-out)
+              var norm = (u - 0.60) / 0.40;
+              var easeReturn = norm < 0.5 ? 2.0 * norm * norm : -1.0 + (4.0 - 2.0 * norm) * norm;
+              currentRadius = fc.rMax - (fc.rMax - fc.rStart) * easeReturn;
+            }
+
+            var ang = fc.baseAngle + (fc.isBlue ? -1 : 1) * (u * Math.PI * 1.6);
+            var fx = currentRadius * Math.cos(ang);
+            var fy = Math.sin(u * Math.PI) * 55.0 * fc.elevationDir;
+            var fz = currentRadius * Math.sin(ang);
+
+            var spinMult = (u > 0.1 && u < 0.85) ? 2.2 : 1.0;
+            fc.cube.transform.rotateX(fc.rotSpeedX * spinMult);
+            fc.cube.transform.rotateY(fc.rotSpeedY * spinMult);
+            fc.cube.transform.rotateZ(fc.rotSpeedZ * spinMult);
+
+            fc.cube.transform.matrix[12] = fx;
+            fc.cube.transform.matrix[13] = fy;
+            fc.cube.transform.matrix[14] = fz;
+            fc.cube.transform.modified();
+          }
+
+          // -------------------------------------------------------------------
+          // 6. Background Starfield Parallax Drift
+          // -------------------------------------------------------------------
+          for (var s = 0; s < starCubes.length; s++) {
+            var star = starCubes[s];
+            star.theta += 0.0015 * speedMultiplier;
+            var sx = star.radius * Math.cos(star.theta);
+            var sy = star.y + Math.sin(time * 1.5 + star.phase) * 3.0;
+            var sz = star.radius * Math.sin(star.theta);
+
+            star.cube.transform.rotateX(star.rotX);
+            star.cube.transform.rotateY(star.rotY);
+            star.cube.transform.matrix[12] = sx;
+            star.cube.transform.matrix[13] = sy;
+            star.cube.transform.matrix[14] = sz;
+            star.cube.transform.modified();
+          }
+
+          // -------------------------------------------------------------------
+          // 7. Auto-Orbit Camera
+          // -------------------------------------------------------------------
+          if (autoOrbit) {
+            r.camera.rotate([0.35 * speedMultiplier, 0]);
+          }
+        };
+
+        // Start XTK rendering
+        r.render();
+
+        // =====================================================================
+        // 6. USER INTERACTIONS & HUD CONTROLS
+        // =====================================================================
+        function showToast(msg) {
+          var toast = document.getElementById('toast');
+          toast.textContent = msg;
+          toast.classList.add('show');
+          setTimeout(function() {
+            toast.classList.remove('show');
+          }, 2400);
+        }
+
+        // Toggle Auto Orbit
+        var btnOrbit = document.getElementById('btn-orbit');
+        btnOrbit.onclick = function() {
+          autoOrbit = !autoOrbit;
+          if (autoOrbit) {
+            btnOrbit.classList.add('active');
+            btnOrbit.innerHTML = '🔄 Orbit: ON';
+            showToast('Auto-Orbit Camera: Resumed');
+          } else {
+            btnOrbit.classList.remove('active');
+            btnOrbit.innerHTML = '🔄 Orbit: OFF';
+            showToast('Auto-Orbit Camera: Paused');
+          }
+        };
+
+        // Reset Camera
+        var btnReset = document.getElementById('btn-reset');
+        btnReset.onclick = function() {
+          playSound('reset');
+          r.camera.position = [DEFAULT_CAM_POS[0], DEFAULT_CAM_POS[1], DEFAULT_CAM_POS[2]];
+          r.camera.focus = [0, 0, 0];
+          r.camera.up = [0, 1, 0];
+          showToast('Camera View Reset');
+        };
+
+        // Launch Flares
+        var btnFlare = document.getElementById('btn-flare');
+        btnFlare.onclick = function() {
+          triggerFlareSurge();
+        };
+
+        // Save Scene (CS460 loader.js download)
+        var btnSave = document.getElementById('btn-save');
+        btnSave.onclick = function() {
+          try {
+            if (typeof download === 'function') {
+              download();
+              showToast('💾 Scene exported to scene.json');
+            } else {
+              showToast('Loader serializer unavailable');
+            }
+          } catch(e) {
+            showToast('Export failed: ' + e.message);
+          }
+        };
+
+        // Toggle Sound
+        var btnSound = document.getElementById('btn-sound');
+        btnSound.onclick = function() {
+          soundEnabled = !soundEnabled;
+          if (soundEnabled) {
+            initAudio();
+            btnSound.innerHTML = '🔊 Sound: ON';
+            btnSound.classList.add('active');
+            showToast('Audio FX: Enabled');
+          } else {
+            btnSound.innerHTML = '🔇 Sound: OFF';
+            btnSound.classList.remove('active');
+            showToast('Audio FX: Muted');
+          }
+        };
+
+        // Speed Toggle (Normal <-> 1.8x Turbo)
+        var btnSpeed = document.getElementById('btn-speed');
+        btnSpeed.onclick = function() {
+          if (speedMultiplier === 1.0) {
+            speedMultiplier = 1.8;
+            btnSpeed.innerHTML = '⚡ Speed: Fast';
+            btnSpeed.classList.add('active');
+            showToast('Warp Speed: 1.8x');
+          } else {
+            speedMultiplier = 1.0;
+            btnSpeed.innerHTML = '⚡ Speed: 1.0x';
+            btnSpeed.classList.remove('active');
+            showToast('Normal Galactic Velocity');
+          }
+        };
+
+        // Keyboard Shortcuts
+        window.addEventListener('keydown', function(e) {
+          if (e.target.tagName === 'INPUT') return;
+          var key = e.key.toLowerCase();
+
+          if (e.code === 'Space') {
+            e.preventDefault();
+            triggerFlareSurge();
+          } else if (key === 'o') {
+            btnOrbit.click();
+          } else if (key === 'r') {
+            btnReset.click();
+          } else if (key === 's') {
+            btnSave.click();
+          } else if (key === 'm') {
+            btnSound.click();
+          }
+        });
+
+      };
+    </script>
+  </head>
+  <body>
+    <!-- Background overlay -->
+    <div id="cosmic-dust-overlay"></div>
+
+    <!-- Header Branding -->
+    <div id="header-container">
+      <h1 id="header-title">Cube Galaxy</h1>
+      <div id="header-subtitle">
+        <span>CS460 Assignment 2</span>
+        <span>•</span>
+        <span class="badge-sketch">Hand-Drawn Design</span>
+      </div>
+    </div>
+
+    <!-- Interactive HUD Deck -->
+    <div id="hud-panel">
+      <div class="controls-bar">
+        <button id="btn-flare" class="hud-btn primary" title="Launch outward flying cubes [Space]">🚀 Launch Flares</button>
+        <button id="btn-orbit" class="hud-btn active" title="Toggle automatic 360 camera orbit [O]">🔄 Orbit: ON</button>
+        <button id="btn-reset" class="hud-btn" title="Reset camera to default view [R]">🎯 Reset</button>
+        <button id="btn-speed" class="hud-btn" title="Toggle rotation speed">⚡ Speed: 1.0x</button>
+        <button id="btn-save" class="hud-btn" title="Export scene via loader.js [S]">💾 Save Scene</button>
+        <button id="btn-sound" class="hud-btn active" title="Toggle sound FX [M]">🔊 Sound: ON</button>
+      </div>
+
+      <div class="telemetry-deck">
+        <div class="telemetry-item">
+          <span class="indicator-dot dot-core"></span>
+          <span>Core: Pulsing RGB</span>
+        </div>
+        <span>•</span>
+        <div class="telemetry-item">
+          <span class="indicator-dot dot-cyan"></span>
+          <span>Inner: Clockwise</span>
+        </div>
+        <span>•</span>
+        <div class="telemetry-item">
+          <span class="indicator-dot dot-pink"></span>
+          <span>Outer: Counter-CW</span>
+        </div>
+        <span>•</span>
+        <span id="fps-counter" style="color: #00f0ff; font-weight: 700;">60 FPS</span>
+      </div>
+    </div>
+
+    <!-- Keyboard Shortcuts Legend -->
+    <div id="shortcuts-legend">
+      <div class="shortcut-item"><span class="key">Space</span> Launch Flares</div>
+      <div class="shortcut-item"><span class="key">O</span> Auto Orbit</div>
+      <div class="shortcut-item"><span class="key">R</span> Reset View</div>
+      <div class="shortcut-item"><span class="key">S</span> Save Scene</div>
+      <div class="shortcut-item"><span class="key">Left Click + Drag</span> Rotate</div>
+      <div class="shortcut-item"><span class="key">Right Click + Drag</span> Pan</div>
+      <div class="shortcut-item"><span class="key">Scroll</span> Zoom</div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="toast">Ready</div>
+  </body>
+</html>
