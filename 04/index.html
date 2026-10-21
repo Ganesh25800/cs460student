@@ -45,6 +45,33 @@
             z-index: 2;
             display: block;
         }
+
+        #score {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 10;
+            color: white;
+            font-family: Arial, sans-serif;
+            font-size: 28px;
+            font-weight: bold;
+            text-shadow: 2px 2px 5px black;
+        }
+
+        #winMessage {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 20;
+            color: yellow;
+            font-family: Arial, sans-serif;
+            font-size: 60px;
+            font-weight: bold;
+            text-align: center;
+            text-shadow: 3px 3px 8px black;
+        }
     </style>
   </head>
   <script type="text/javascript" src="https://cs460.org/js/glmatrix.js"></script>
@@ -78,6 +105,7 @@
   <script>
 
     var c, gl;
+    var score = 0;
     var v_shader, f_shader, shaderprogram;
     var vertices, indices, v_buffer, i_buffer;
 
@@ -248,6 +276,29 @@
     function animate() {
 
       requestAnimationFrame(animate);
+        
+      // Check collisions between the red fish and blue fish
+        var redFish = all_fish[0];
+
+        for (var i = all_fish.length - 1; i >= 1; i--) {
+            var smallFish = all_fish[i];
+
+            var dx = redFish[4][0] - smallFish[4][0];
+            var dy = redFish[4][1] - smallFish[4][1];
+
+            var distance = Math.sqrt(dx * dx + dy * dy);
+
+            if (distance < 0.25 + smallFish[5] * 0.2) {
+                all_fish.splice(i, 1);
+                score += 10;
+                document.getElementById('score').textContent = 'Score: ' + score;
+            }
+        }
+
+        // Check winning condition AFTER the collision loop
+        if (all_fish.length === 1) {
+            document.getElementById('winMessage').style.display = 'block';
+        }
 
       gl.clearColor( 0., 0., 0., 0.)
       gl.clear( gl.COLOR_BUFFER_BIT );
@@ -402,6 +453,8 @@
 
   </script>
   <body>
+    <div id="score">Score: 0</div>
+    <div id="winMessage">YOU WIN! 🏆</div>
     <canvas id="c"></canvas>
   </body>
 </html>
