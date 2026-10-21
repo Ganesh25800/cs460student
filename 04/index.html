@@ -218,6 +218,33 @@
     var step_y = .01;
     var direction = -1;
 
+    var keys = {
+        ArrowUp: false,
+        ArrowDown: false,
+        ArrowLeft: false,
+        ArrowRight: false
+    };
+
+    window.addEventListener('keydown', function(e) {
+        if (e.key in keys) {
+            keys[e.key] = true;
+            e.preventDefault();
+        }
+    });
+
+    window.addEventListener('keyup', function(e) {
+        if (e.key in keys) {
+            keys[e.key] = false;
+            e.preventDefault();
+        }
+    });
+
+    window.addEventListener('blur', function() {
+        for (var key in keys) {
+            keys[key] = false;
+        }
+    });
+
     function animate() {
 
       requestAnimationFrame(animate);
@@ -245,24 +272,41 @@
         var current_scale = current_buffers[5];
         var current_direction = current_buffers[6];
 
-        // Move fish horizontally
-        current_offset[0] += current_direction * 0.003;
+        if (r === 0) {
+            // Large red fish: keyboard controls
+            var speed = 0.01;
 
-        // Gentle vertical swimming motion
-        current_offset[1] += (Math.random() - 0.5) * 0.005;
+            if (keys.ArrowLeft) {
+                current_offset[0] -= speed;
+                current_buffers[6] = -1;
+            }
 
-        // Keep fish inside the vertical screen boundaries
-        current_offset[1] = Math.max(-0.9, Math.min(0.9, current_offset[1]));
+            if (keys.ArrowRight) {
+                current_offset[0] += speed;
+                current_buffers[6] = 1;
+            }
+            if (keys.ArrowUp) current_offset[1] += speed;
+            if (keys.ArrowDown) current_offset[1] -= speed;
 
-        // Wrap around horizontally
-        if (current_direction === 1 && current_offset[0] > 1.2) {
-            current_offset[0] = -1.2;
+            // Keep the red fish inside the aquarium
+            current_offset[0] = Math.max(-0.5, Math.min(0.5, current_offset[0]));
+            current_offset[1] = Math.max(-0.6, Math.min(0.6, current_offset[1]));
+
+        } else {
+            // Small fish: automatic swimming
+            current_offset[0] += current_direction * 0.003;
+
+            // Gentle vertical movement
+            current_offset[1] += (Math.random() - 0.5) * 0.005;
+            current_offset[1] = Math.max(-0.9, Math.min(0.9, current_offset[1]));
+
+            // Wrap around horizontally
+            if (current_offset[0] > 1.2) {
+                current_offset[0] = -1.2;
+            }
         }
 
-        if (current_direction === -1 && current_offset[0] < -1.2) {
-            current_offset[0] = 1.2;
-        }
-        //current_offset[1] += direction*step_y;
+        current_direction = current_buffers[6];
         
 
 
